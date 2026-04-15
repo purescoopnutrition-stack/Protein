@@ -1,6 +1,27 @@
+# dependencies
 node_modules
+.pnp
+.pnp.js
+
+# next.js
+.next
+out
+
+# production
+build
 dist
+
+# misc
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+*.pem
+
+# debug
+npm-debug.log*
+
+# env files
+
+.env*.local
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

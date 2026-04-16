@@ -55,32 +55,22 @@ export function OrderFormModal() {
     try {
       const orderNumber = generateOrderNumber();
 
-      // Save order to Supabase
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          customer_name: data.name,
-          phone: data.phone,
-          email: data.email || null,
-          address: data.address,
-          pincode: data.pincode,
-          notes: data.notes || null,
-          status: 'pending',
-          subtotal,
-          discount,
-          shipping,
-          total,
-          coupon_code: coupon?.code || null,
-        })
-        .select()
-        .single();
+      const orderData = {
+        order_number: orderNumber,
+        customer_name: data.name,
+        phone: data.phone,
+        email: data.email || null,
+        address: data.address,
+        pincode: data.pincode,
+        notes: data.notes || null,
+        status: 'pending',
+        subtotal,
+        discount,
+        shipping,
+        total,
+      };
 
-      if (orderError) throw orderError;
-
-      // Save order items
       const orderItems = items.map((item) => ({
-        order_id: order.id,
         product_id: item.productId,
         product_name: item.productName,
         variant_name: item.variant || null,
@@ -90,16 +80,20 @@ export function OrderFormModal() {
         price: item.price,
       }));
 
-      const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-      if (itemsError) throw itemsError;
+      // Call backend checkout API
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderData,
+          orderItems,
+          couponCode: coupon?.code || null,
+        })
+      });
 
-      // Increment coupon used_count
-      if (coupon) {
-        try {
-          await supabase.rpc('increment_coupon_usage', { coupon_code: coupon.code });
-        } catch {
-          // Non-critical — ignore
-        }
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to place order via API');
       }
 
       // Build WhatsApp message

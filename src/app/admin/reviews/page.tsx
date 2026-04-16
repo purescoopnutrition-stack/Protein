@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, Star, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { adminUpdateCrud, adminDeleteCrud } from '@/lib/admin-api';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -19,9 +19,9 @@ function Content() {
   const { data: reviews, isLoading } = useAdminReviews();
   const qc = useQueryClient();
 
-  async function approve(id: string) { await supabase.from('reviews').update({ is_approved: true }).eq('id', id); qc.invalidateQueries({ queryKey: ['admin-reviews'] }); toast.success('Approved'); }
-  async function reject(id: string) { await supabase.from('reviews').update({ is_approved: false }).eq('id', id); qc.invalidateQueries({ queryKey: ['admin-reviews'] }); toast.success('Rejected'); }
-  async function del(id: string) { if (!confirm('Delete?')) return; await supabase.from('reviews').delete().eq('id', id); qc.invalidateQueries({ queryKey: ['admin-reviews'] }); toast.success('Deleted'); }
+  async function approve(id: string) { await adminUpdateCrud('reviews', id, { is_approved: true }); qc.invalidateQueries({ queryKey: ['admin-reviews'] }); toast.success('Approved'); }
+  async function reject(id: string) { await adminUpdateCrud('reviews', id, { is_approved: false }); qc.invalidateQueries({ queryKey: ['admin-reviews'] }); toast.success('Rejected'); }
+  async function del(id: string) { if (!confirm('Delete?')) return; await adminDeleteCrud('reviews', id); qc.invalidateQueries({ queryKey: ['admin-reviews'] }); toast.success('Deleted'); }
 
   return (
     <div className="bg-[#1A1A1A] rounded-2xl border border-white/5 overflow-hidden overflow-x-auto">

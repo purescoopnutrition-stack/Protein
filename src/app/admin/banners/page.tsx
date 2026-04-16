@@ -14,8 +14,7 @@ import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
-import { uploadFile, generateFilePath, BUCKETS } from '@/lib/storage-helpers';
+import { adminInsertCrud, adminUpdateCrud, adminDeleteCrud, adminUploadImage } from '@/lib/admin-api';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -58,16 +57,28 @@ function Content() {
     setSaving(true);
     try {
       let image_url = previewUrl;
-      if (imageFile) { const p = generateFilePath(imageFile, 'banners'); image_url = await uploadFile(BUCKETS.BANNER_IMAGES, p, imageFile); }
+      if (imageFile) {
+        const uploadRes = await adminUploadImage(imageFile, null, 0, 'banner-images');
+        image_url = uploadRes.url;
+      }
       if (!image_url && !editId) { toast.error('Image is required'); setSaving(false); return; }
       const payload = { ...data, image_url: image_url || '', title: data.title || null, subtitle: data.subtitle || null, cta_text: data.cta_text || null, cta_link: data.cta_link || null };
-      if (editId) { const { error } = await supabase.from('banners').update(payload).eq('id', editId); if (error) throw error; }
-      else { const { error } = await supabase.from('banners').insert(payload); if (error) throw error; }
+      if (editId) { await adminUpdateCrud('banners', editId, payload); }
+      else { await adminInsertCrud('banners', payload); }
       toast.success(editId ? 'Updated!' : 'Created!'); qc.invalidateQueries({ queryKey: ['admin-banners'] }); qc.invalidateQueries({ queryKey: ['banners'] }); setDialogOpen(false);
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Failed'); } finally { setSaving(false); }
   }
 
-  async function handleDelete(id: string) { if (!confirm('Delete?')) return; await supabase.from('banners').delete().eq('id', id); qc.invalidateQueries({ queryKey: ['admin-banners'] }); toast.success('Deleted'); }
+  async function handleDelete(id: string) {
+    if (!confirm('Delete?')) return;
+    try {
+      await adminDeleteCrud('banners', id);
+      qc.invalidateQueries({ queryKey: ['admin-banners'] });
+      toast.success('Deleted');
+    } catch {
+      toast.error('Failed to delete');
+    }
+  }
 
   return (
     <div className="space-y-6">

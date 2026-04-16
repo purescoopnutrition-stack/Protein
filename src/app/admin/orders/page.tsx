@@ -2,16 +2,15 @@
 
 import { AdminGuard } from '@/components/admin/AdminGuard';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useAdminOrders, useUpdateOrderStatus } from '@/hooks/use-admin';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Eye } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useSettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
+import { adminFetchOrders, adminUpdateOrderStatus, adminFetchSettings } from '@/lib/admin-api';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -31,17 +30,51 @@ export default function AdminOrders() {
 
 function Content() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { data: orders, isLoading } = useAdminOrders(statusFilter);
-  const updateStatus = useUpdateOrderStatus();
-  const { data: settings } = useSettings();
-  const whatsappNumber = settings?.whatsapp_number || '918130297902';
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [viewOrder, setViewOrder] = useState<any | null>(null);
+  const [whatsappNumber, setWhatsappNumber] = useState('918130297902');
 
-  function handleStatusChange(orderId: string, newStatus: string) {
-    updateStatus.mutate({ id: orderId, status: newStatus }, {
-      onSuccess: () => toast.success('Status updated'),
-      onError: () => toast.error('Failed to update status'),
-    });
+  const loadOrders = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await adminFetchOrders(statusFilter);
+      setOrders(data);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to load orders');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  // Load whatsapp number from settings via server API
+  useEffect(() => {
+    adminFetchSettings()
+      .then((data: any[]) => {
+        const entry = data.find((s: any) => s.key === 'whatsapp_number');
+        if (entry?.value) setWhatsappNumber(entry.value);
+      })
+      .catch(() => {/* use default */});
+  }, []);
+
+  async function handleStatusChange(orderId: string, newStatus: string) {
+    setUpdatingId(orderId);
+    try {
+      await adminUpdateOrderStatus(orderId, newStatus);
+      toast.success('Status updated');
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to update status');
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
   function openWhatsApp(phone: string, orderNumber: string) {
@@ -82,7 +115,11 @@ function Content() {
                 <TableCell><div className="text-white text-sm">{order.customer_name}</div><div className="text-white/40 text-xs">{order.phone}</div></TableCell>
                 <TableCell className="font-bold">₹{Number(order.total).toLocaleString('en-IN')}</TableCell>
                 <TableCell>
-                  <Select value={order.status} onValueChange={(v) => handleStatusChange(order.id, v)}>
+                  <Select
+                    value={order.status}
+                    onValueChange={(v) => handleStatusChange(order.id, v)}
+                    disabled={updatingId === order.id}
+                  >
                     <SelectTrigger className={`w-[130px] h-8 rounded-full text-xs border ${statusColors[order.status] || ''}`}>
                       <SelectValue />
                     </SelectTrigger>
@@ -137,4 +174,3 @@ function Content() {
     </div>
   );
 }
-

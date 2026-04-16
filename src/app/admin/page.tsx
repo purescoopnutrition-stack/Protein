@@ -2,8 +2,17 @@
 
 import { AdminGuard } from '@/components/admin/AdminGuard';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useAdminStats } from '@/hooks/use-admin';
 import { Package, ShoppingCart, DollarSign, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+const ADMIN_TOKEN = 'ps-admin-authenticated';
+
+interface Stats {
+  totalProducts: number;
+  totalOrders: number;
+  pendingOrders: number;
+  totalRevenue: number;
+}
 
 export default function AdminDashboard() {
   return (
@@ -16,7 +25,18 @@ export default function AdminDashboard() {
 }
 
 function DashboardContent() {
-  const { data: stats, isLoading } = useAdminStats();
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/admin/stats', {
+      headers: { 'x-admin-token': ADMIN_TOKEN },
+    })
+      .then((r) => r.json())
+      .then((data) => setStats(data))
+      .catch(() => {/* non-critical */})
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const cards = [
     { title: 'Total Products', value: stats?.totalProducts || 0, icon: Package, color: 'bg-blue-500/10 text-blue-400' },
@@ -63,4 +83,3 @@ function DashboardContent() {
     </div>
   );
 }
-

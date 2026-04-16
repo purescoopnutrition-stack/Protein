@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
+import { adminInsertCrud, adminUpdateCrud, adminDeleteCrud } from '@/lib/admin-api';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -61,13 +61,22 @@ function Content() {
     setSaving(true);
     try {
       const payload = { ...data, code: data.code.toUpperCase().trim(), max_discount: data.max_discount || null, usage_limit: data.usage_limit || null, expires_at: data.expires_at || null };
-      if (editId) { const { error } = await supabase.from('coupons').update(payload).eq('id', editId); if (error) throw error; }
-      else { const { error } = await supabase.from('coupons').insert(payload); if (error) throw error; }
+      if (editId) { await adminUpdateCrud('coupons', editId, payload); }
+      else { await adminInsertCrud('coupons', payload); }
       toast.success(editId ? 'Updated!' : 'Created!'); qc.invalidateQueries({ queryKey: ['admin-coupons'] }); setDialogOpen(false);
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Failed'); } finally { setSaving(false); }
   }
 
-  async function handleDelete(id: string) { if (!confirm('Delete?')) return; await supabase.from('coupons').delete().eq('id', id); qc.invalidateQueries({ queryKey: ['admin-coupons'] }); toast.success('Deleted'); }
+  async function handleDelete(id: string) {
+    if (!confirm('Delete?')) return;
+    try {
+      await adminDeleteCrud('coupons', id);
+      qc.invalidateQueries({ queryKey: ['admin-coupons'] });
+      toast.success('Deleted');
+    } catch {
+      toast.error('Failed to delete');
+    }
+  }
 
   return (
     <div className="space-y-6">

@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE /api/admin/products — delete a product
+// DELETE /api/admin/products — delete a product and all related data
 export async function DELETE(req: NextRequest) {
   if (!isAdminRequest(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -184,8 +184,46 @@ export async function DELETE(req: NextRequest) {
   try {
     const sb = getAdminSupabase();
     const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    }
+
+    // 1. Fetch all product images to delete from storage
+    const { data: images } = await sb
+      .from('product_images')
+      .select('id, url')
+      .eq('product_id', id);
+
+    // 2. Delete image files from Supabase Storage
+    if (images && images.length > 0) {
+      const marker = '/storage/v1/object/public/product-images/';
+      const storagePaths = images
+        .map((img: { url: string }) => {
+          const idx = img.url.indexOf(marker);
+          return idx !== -1 ? img.url.substring(idx + marker.length) : null;
+        })
+        .filter(Boolean) as string[];
+
+      if (storagePaths.length > 0) {
+        await sb.storage.from('product-images').remove(storagePaths);
+      }
+
+      // 3. Delete product_images records
+      await sb.from('product_images').delete().eq('product_id', id);
+    }
+
+    // 4. Delete product_flavours and product_sizes
+    await sb.from('product_flavours').delete().eq('product_id', id);
+    await sb.from('product_sizes').delete().eq('product_id', id);
+
+    // 5. Delete product_variants if any
+    await sb.from('product_variants').delete().eq('product_id', id);
+
+    // 6. Finally delete the product itself
     const { error } = await sb.from('products').delete().eq('id', id);
     if (error) throw error;
+
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
     return NextResponse.json(

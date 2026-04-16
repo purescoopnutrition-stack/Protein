@@ -2,23 +2,22 @@
 
 import { AdminGuard } from '@/components/admin/AdminGuard';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useAdminSettings } from '@/hooks/use-admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Save } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { adminSaveSettings } from '@/lib/admin-api';
-import { useQueryClient } from '@tanstack/react-query';
+import { adminFetchSettings, adminSaveSettings } from '@/lib/admin-api';
 import { toast } from 'sonner';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function AdminSettings() {
   return <AdminGuard><AdminLayout title="Settings"><Content /></AdminLayout></AdminGuard>;
 }
 
 function Content() {
-  const { data: settings, isLoading } = useAdminSettings();
-  const qc = useQueryClient();
+  const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [values, setValues] = useState({
     whatsapp_number: '',
@@ -28,23 +27,26 @@ function Content() {
   });
 
   useEffect(() => {
-    if (settings) {
-      setValues({
-        whatsapp_number: settings.whatsapp_number || '918130297902',
-        shipping_charges: settings.shipping_charges || '50',
-        free_shipping_threshold: settings.free_shipping_threshold || '999',
-        announcement_text: settings.announcement_text || '',
-      });
-    }
-  }, [settings]);
+    adminFetchSettings()
+      .then((data: any[]) => {
+        const map: Record<string, string> = {};
+        data.forEach((s: any) => { map[s.key] = s.value; });
+        setValues({
+          whatsapp_number: map.whatsapp_number || '918130297902',
+          shipping_charges: map.shipping_charges || '50',
+          free_shipping_threshold: map.free_shipping_threshold || '999',
+          announcement_text: map.announcement_text || '',
+        });
+      })
+      .catch(() => toast.error('Failed to load settings'))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   async function handleSave() {
     setSaving(true);
     try {
       await adminSaveSettings(values);
       toast.success('Settings saved!');
-      qc.invalidateQueries({ queryKey: ['admin-settings'] });
-      qc.invalidateQueries({ queryKey: ['settings'] });
     } catch {
       toast.error('Failed to save settings');
     } finally {
@@ -118,4 +120,3 @@ function Content() {
     </div>
   );
 }
-

@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { uploadFile, generateFilePath, BUCKETS } from '@/lib/storage-helpers';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { adminInsertCrud, adminUpdateCrud, adminDeleteCrud, adminUploadImage } from '@/lib/admin-api';
 
 const schema = z.object({
   name: z.string().min(2),
@@ -56,16 +57,15 @@ function Content() {
     try {
       let image_url = previewUrl;
       if (imageFile) {
-        const path = generateFilePath(imageFile, 'categories');
-        image_url = await uploadFile(BUCKETS.CATEGORY_IMAGES, path, imageFile);
+        // Upload image via the server endpoint for the categories bucket
+        const uploadRes = await adminUploadImage(imageFile, null, 0, 'category-images');
+        image_url = uploadRes.url;
       }
       const payload = { ...data, image_url: image_url || null };
       if (editId) {
-        const { error } = await supabase.from('categories').update(payload).eq('id', editId);
-        if (error) throw error;
+        await adminUpdateCrud('categories', editId, payload);
       } else {
-        const { error } = await supabase.from('categories').insert(payload);
-        if (error) throw error;
+        await adminInsertCrud('categories', payload);
       }
       toast.success(editId ? 'Category updated!' : 'Category created!');
       qc.invalidateQueries({ queryKey: ['admin-categories'] });
@@ -76,9 +76,13 @@ function Content() {
 
   async function handleDelete(id: string) {
     if (!confirm('Delete?')) return;
-    await supabase.from('categories').delete().eq('id', id);
-    qc.invalidateQueries({ queryKey: ['admin-categories'] });
-    toast.success('Deleted');
+    try {
+      await adminDeleteCrud('categories', id);
+      qc.invalidateQueries({ queryKey: ['admin-categories'] });
+      toast.success('Deleted');
+    } catch {
+      toast.error('Failed to delete');
+    }
   }
 
   return (

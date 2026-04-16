@@ -83,41 +83,25 @@ export function useAdminAuth() {
 
 /* ── Admin CRUD hooks ─────────────────────────────────────────── */
 
+import {
+  adminFetchProducts,
+  adminFetchOrders,
+  adminUpdateOrderStatus,
+  adminFetchSettings,
+  adminFetchCrud,
+} from '@/lib/admin-api';
+
 export function useAdminProducts() {
   return useQuery({
     queryKey: ['admin-products'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          images:product_images(id, url, alt_text, position),
-          variants:product_variants(id, name, price, compare_price, stock),
-          flavours:product_flavours(id, name),
-          sizes:product_sizes(id, name),
-          category:categories(id, name),
-          brand:brands(id, name)
-        `)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
-    },
+    queryFn: adminFetchProducts,
   });
 }
 
 export function useAdminOrders(status?: string) {
   return useQuery({
     queryKey: ['admin-orders', status],
-    queryFn: async () => {
-      let query = supabase
-        .from('orders')
-        .select(`*, items:order_items(*)`)
-        .order('created_at', { ascending: false });
-      if (status && status !== 'all') query = query.eq('status', status);
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as any[];
-    },
+    queryFn: () => adminFetchOrders(status),
   });
 }
 
@@ -125,8 +109,7 @@ export function useUpdateOrderStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from('orders').update({ status }).eq('id', id);
-      if (error) throw error;
+      await adminUpdateOrderStatus(id, status);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-orders'] }),
   });
@@ -135,58 +118,36 @@ export function useUpdateOrderStatus() {
 export function useAdminCategories() {
   return useQuery({
     queryKey: ['admin-categories'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('categories').select('*').order('position');
-      if (error) throw error;
-      return (data || []) as any[];
-    },
+    queryFn: () => adminFetchCrud('categories', { orderBy: 'position', ascending: 'true' }),
   });
 }
 
 export function useAdminBrands() {
   return useQuery({
     queryKey: ['admin-brands'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('brands').select('*').order('position');
-      if (error) throw error;
-      return (data || []) as any[];
-    },
+    queryFn: () => adminFetchCrud('brands', { orderBy: 'position', ascending: 'true' }),
   });
 }
 
 export function useAdminCoupons() {
   return useQuery({
     queryKey: ['admin-coupons'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
-    },
+    queryFn: () => adminFetchCrud('coupons', { orderBy: 'created_at', ascending: 'false' }),
   });
 }
 
 export function useAdminReviews() {
   return useQuery({
     queryKey: ['admin-reviews'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select(`*, product:products(id, name)`)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
-    },
+    // Using select='*, product:products(id, name)'
+    queryFn: () => adminFetchCrud('reviews', { select: '*, product:products(id, name)', orderBy: 'created_at', ascending: 'false' }),
   });
 }
 
 export function useAdminBanners() {
   return useQuery({
     queryKey: ['admin-banners'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('banners').select('*').order('position');
-      if (error) throw error;
-      return (data || []) as any[];
-    },
+    queryFn: () => adminFetchCrud('banners', { orderBy: 'position', ascending: 'true' }),
   });
 }
 
@@ -194,8 +155,7 @@ export function useAdminSettings() {
   return useQuery({
     queryKey: ['admin-settings'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('settings').select('*');
-      if (error) throw error;
+      const data = await adminFetchSettings();
       const map: Record<string, string> = {};
       ((data || []) as any[]).forEach((s: any) => { map[s.key] = s.value; });
       return map;
@@ -207,20 +167,11 @@ export function useAdminStats() {
   return useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
-      const [products, orders, pendingOrders] = await Promise.all([
-        supabase.from('products').select('id', { count: 'exact', head: true }),
-        supabase.from('orders').select('id, total'),
-        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      ]);
-
-      const totalRevenue = ((orders.data || []) as any[]).reduce((s: number, o: any) => s + Number(o.total), 0);
-
-      return {
-        totalProducts: products.count || 0,
-        totalOrders: (orders.data as any[] | null)?.length || 0,
-        pendingOrders: pendingOrders.count || 0,
-        totalRevenue,
-      };
+      const res = await fetch('/api/admin/stats', {
+        headers: { 'x-admin-token': 'ps-admin-authenticated' }
+      });
+      if (!res.ok) throw new Error('Failed to fetch stats');
+      return res.json();
     },
   });
 }

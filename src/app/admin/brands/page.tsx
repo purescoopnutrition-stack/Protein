@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
-import { uploadFile, generateFilePath, BUCKETS } from '@/lib/storage-helpers';
+import { adminInsertCrud, adminUpdateCrud, adminDeleteCrud, adminUploadImage } from '@/lib/admin-api';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -48,17 +48,29 @@ function Content() {
     setSaving(true);
     try {
       let logo_url = previewUrl;
-      if (logoFile) { const p = generateFilePath(logoFile, 'brands'); logo_url = await uploadFile(BUCKETS.BRAND_LOGOS, p, logoFile); }
+      if (logoFile) {
+        const uploadRes = await adminUploadImage(logoFile, null, 0, 'brand-logos');
+        logo_url = uploadRes.url;
+      }
       const payload = { ...data, logo_url: logo_url || null };
-      if (editId) { const { error } = await supabase.from('brands').update(payload).eq('id', editId); if (error) throw error; }
-      else { const { error } = await supabase.from('brands').insert(payload); if (error) throw error; }
+      if (editId) { await adminUpdateCrud('brands', editId, payload); }
+      else { await adminInsertCrud('brands', payload); }
       toast.success(editId ? 'Updated!' : 'Created!');
       qc.invalidateQueries({ queryKey: ['admin-brands'] }); qc.invalidateQueries({ queryKey: ['brands'] });
       setDialogOpen(false);
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Failed'); } finally { setSaving(false); }
   }
 
-  async function handleDelete(id: string) { if (!confirm('Delete?')) return; await supabase.from('brands').delete().eq('id', id); qc.invalidateQueries({ queryKey: ['admin-brands'] }); toast.success('Deleted'); }
+  async function handleDelete(id: string) {
+    if (!confirm('Delete?')) return;
+    try {
+      await adminDeleteCrud('brands', id);
+      qc.invalidateQueries({ queryKey: ['admin-brands'] });
+      toast.success('Deleted');
+    } catch {
+      toast.error('Failed to delete');
+    }
+  }
 
   return (
     <div className="space-y-6">

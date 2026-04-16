@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 const bgImage = "/assets/homepage-bg.jpg";
 
 export function Hero() {
   return (
     <section className="relative min-h-[110vh] flex items-center pt-24 pb-48 overflow-hidden bg-background">
-      {/* Background Image Layer - Desktop Only */}
+      {/* Background Image Layer - All Devices */}
       <div
-        className="hidden md:block absolute inset-0 z-0"
+        className="absolute inset-0 z-0"
         style={{
           backgroundImage: `url(${bgImage})`,
           backgroundSize: 'cover',
@@ -15,43 +16,32 @@ export function Hero() {
           opacity: 1
         }}
       >
-        {/* Added dark overlay */}
-        <div className="absolute inset-0 bg-black/40 z-[1]" />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-black/50 z-[1]" />
       </div>
 
-      <div className="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
+      <div className="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10 w-full h-[110vh]">
         {/* Text Content */}
-        <div className="space-y-8 max-w-xl animate-in slide-in-from-bottom-10 fade-in duration-1000">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-border shadow-sm">
+        <div className="space-y-8 max-w-xl animate-in slide-in-from-bottom-10 fade-in duration-1000 mt-[-10vh]">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground">New Formulation 2.0</span>
+            <span className="text-xs font-bold tracking-widest uppercase text-white/90">New Formulation 2.0</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-heading font-bold leading-[1.1] text-white md:text-white drop-shadow-md text-balance">
+          <h1 className="text-5xl md:text-7xl font-heading font-bold leading-[1.1] text-white drop-shadow-md text-balance">
             Purity is <span className="text-primary italic">Priority</span>.
           </h1>
 
-          <p className="text-lg text-white/90 md:text-white/90 leading-relaxed max-w-md drop-shadow-sm font-medium">
+          <p className="text-lg text-white/90 leading-relaxed max-w-md drop-shadow-sm font-medium">
             Step into a world of pure nutrition. Our clean, science-backed supplements are designed to fuel your peak performance and daily wellness.
           </p>
 
           <div className="flex flex-wrap gap-4 pt-4">
-            <Button size="lg" className="rounded-md px-10 h-14 text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-transform hover:scale-105 uppercase tracking-wider">
-              SHOP THE SALE
+            <Button asChild size="lg" className="rounded-md px-10 h-14 text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-transform hover:scale-105 uppercase tracking-wider">
+              <Link href="/shop">
+                SHOP THE SALE
+              </Link>
             </Button>
-          </div>
-        </div>
-
-        {/* Mobile Image - Immersive Zoomed View */}
-        <div className="block md:hidden w-screen relative left-1/2 right-1/2 -ml-[50vw] z-0 mt-8">
-          <div className="relative aspect-[4/3] w-full overflow-hidden">
-            <img
-              src={bgImage}
-              alt="Protein Products"
-              className="w-full h-full object-cover drop-shadow-2xl scale-125 translate-y-4"
-            />
-            {/* Subtle Gradient Overlay to blend with text above */}
-            <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-transparent h-20" />
           </div>
         </div>
 

@@ -29,8 +29,7 @@ export function useProducts(filters: ProductFilters = {}) {
           flavours:product_flavours(id, name),
           sizes:product_sizes(id, name),
           category:categories(id, name, slug),
-          brand:brands(id, name, slug, logo_url),
-          reviews:reviews(id, rating)
+          brand:brands(id, name, slug, logo_url)
         `)
         .eq('is_active', true);
 
@@ -77,8 +76,7 @@ export function useProduct(slug: string) {
           flavours:product_flavours(id, name),
           sizes:product_sizes(id, name),
           category:categories(id, name, slug),
-          brand:brands(id, name, slug, logo_url),
-          reviews:reviews(id, rating, customer_name, comment, created_at, is_approved)
+          brand:brands(id, name, slug, logo_url)
         `)
         .eq('slug', slug)
         .single();

@@ -55,19 +55,13 @@ export function RelatedProducts({ categoryId, excludeId }: RelatedProductsProps)
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-xl font-bold">₹{Number(product.price).toLocaleString('en-IN')}</span>
                     <Button
+                      asChild
                       size="icon"
                       className="rounded-full bg-black text-white hover:bg-primary h-10 w-10"
-                      onClick={() => {
-                        addItem({
-                          productId: product.id,
-                          productName: product.name,
-                          image: img?.url || '',
-                          price: Number(product.price),
-                        });
-                        toast.success(`${product.name} added to cart!`);
-                      }}
                     >
-                      <Plus className="w-5 h-5" />
+                      <Link href={`/product/${product.slug}`}>
+                        <Plus className="w-5 h-5" />
+                      </Link>
                     </Button>
                   </div>
                 </div>

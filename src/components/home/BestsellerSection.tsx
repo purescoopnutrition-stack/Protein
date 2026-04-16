@@ -83,19 +83,13 @@ export function BestsellerSection() {
                         )}
                       </div>
                       <Button
+                        asChild
                         size="icon"
                         className="rounded-full bg-primary text-black hover:bg-white transition-colors h-10 w-10"
-                        onClick={() => {
-                          addItem({
-                            productId: product.id,
-                            productName: product.name,
-                            image: img?.url || '',
-                            price: Number(product.price),
-                          });
-                          toast.success(`${product.name} added to cart!`);
-                        }}
                       >
-                        <Plus className="w-5 h-5" />
+                        <Link href={`/product/${product.slug}`}>
+                          <Plus className="w-5 h-5" />
+                        </Link>
                       </Button>
                     </div>
                   </div>

@@ -106,21 +106,24 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
 
-      {/* Actions */}
-      <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
         <Button 
+          asChild
           variant="outline" 
-          onClick={handleAddToCart}
           className="w-full h-11 border-orange-400 text-orange-400 hover:bg-orange-50 rounded-lg font-bold"
         >
-          <ShoppingCart className="w-4 h-4 mr-2" />
-          Add to Cart
+          <Link href={`/product/${product.slug}`}>
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            Select Options
+          </Link>
         </Button>
         <Button 
-          onClick={handleBuyNow}
+          asChild
           className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold shadow-lg shadow-orange-500/20"
         >
-          Buy Now
+          <Link href={`/product/${product.slug}`}>
+            View Details
+          </Link>
         </Button>
       </div>
     </motion.div>

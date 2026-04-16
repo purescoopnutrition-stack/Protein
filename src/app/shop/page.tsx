@@ -21,8 +21,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 
 import { useSearchParams } from 'next/navigation';
 
+import { Suspense } from 'react';
 
-export default function Shop() {
+function ShopContent() {
   const searchParams = useSearchParams();
   const initialCategorySlug = searchParams.get('category');
   
@@ -300,4 +301,12 @@ export default function Shop() {
       <Footer />
     </div>
   );
+}
+
+export default function Shop() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex justify-center items-center">Loading shop...</div>}>
+      <ShopContent />
+    </Suspense>
+  )
 }

@@ -12,8 +12,9 @@ function isAdminRequest(req: NextRequest): boolean {
   return req.headers.get('x-admin-token') === 'ps-admin-authenticated';
 }
 
-export async function GET(req: NextRequest, { params }: { params: { table: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ table: string }> }) {
   if (!isAdminRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { table } = await params;
   
   try {
     const sb = getAdminSupabase();
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { table: strin
     const matchField = searchParams.get('matchField');
     const matchValue = searchParams.get('matchValue');
 
-    let query = sb.from(params.table).select(select);
+    let query = sb.from(table).select(select);
     
     if (matchField && matchValue !== null) {
       query = query.eq(matchField, matchValue);
@@ -45,13 +46,14 @@ export async function GET(req: NextRequest, { params }: { params: { table: strin
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { table: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ table: string }> }) {
   if (!isAdminRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { table } = await params;
   
   try {
     const sb = getAdminSupabase();
     const body = await req.json();
-    const { error } = await sb.from(params.table).insert(body);
+    const { error } = await sb.from(table).insert(body);
     if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
@@ -59,13 +61,14 @@ export async function POST(req: NextRequest, { params }: { params: { table: stri
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { table: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ table: string }> }) {
   if (!isAdminRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { table } = await params;
   
   try {
     const sb = getAdminSupabase();
     const { id, ...data } = await req.json();
-    const { error } = await sb.from(params.table).update(data).eq('id', id);
+    const { error } = await sb.from(table).update(data).eq('id', id);
     if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
@@ -73,13 +76,14 @@ export async function PUT(req: NextRequest, { params }: { params: { table: strin
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { table: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ table: string }> }) {
   if (!isAdminRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { table } = await params;
   
   try {
     const sb = getAdminSupabase();
     const { id } = await req.json();
-    const { error } = await sb.from(params.table).delete().eq('id', id);
+    const { error } = await sb.from(table).delete().eq('id', id);
     if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (e: unknown) {

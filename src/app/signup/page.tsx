@@ -131,7 +131,7 @@ export default function SignupPage() {
           <div className="mt-8 pt-8 border-t border-gray-100 text-center">
             <p className="text-sm text-muted-foreground italic">
               Already have an account?{' '}
-              <Link href="/login" title="Login" icon="lock">
+              <Link href="/login" title="Login">
                 <span className="text-primary font-bold hover:underline not-italic">Sign in instead</span>
               </Link>
             </p>

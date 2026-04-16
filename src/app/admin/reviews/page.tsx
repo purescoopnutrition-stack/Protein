@@ -37,7 +37,7 @@ function Content() {
         <TableBody>
           {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-12 text-white/50">Loading...</TableCell></TableRow>
           : !reviews?.length ? <TableRow><TableCell colSpan={6} className="text-center py-12 text-white/50">No reviews</TableCell></TableRow>
-          : reviews.map((r) => (
+          : reviews.map((r: any) => (
             <TableRow key={r.id} className="border-white/5">
               <TableCell className="font-medium text-white text-sm">{(r as Record<string, unknown> & { product?: { name: string } }).product?.name ?? 'Unknown'}</TableCell>
               <TableCell><div className="text-white text-sm">{r.customer_name}</div><div className="text-white/40 text-xs">{r.email}</div></TableCell>

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     // Increment coupon
     if (couponCode) {
-      await sb.rpc('increment_coupon_usage', { coupon_code: couponCode }).catch(() => {});
+      try { await sb.rpc('increment_coupon_usage', { coupon_code: couponCode }); } catch (_) {}
     }
 
     return NextResponse.json({ success: true, orderId: order.id });

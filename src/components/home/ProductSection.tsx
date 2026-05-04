@@ -10,18 +10,27 @@ import { useState, useEffect } from 'react';
 
 interface ProductSectionProps {
   title: string;
+  /** Fixed category ID — pins the section to one category */
   categoryId?: string;
+  /** Fixed category SLUG — resolved to ID on mount, pins the section to one category */
+  categorySlug?: string;
   isBestseller?: boolean;
   isFeatured?: boolean;
   isHotSelling?: boolean;
   limit?: number;
   viewAllLink?: string;
+  /**
+   * showTabs — renders category filter tabs.
+   * When isHotSelling=true the tabs only show categories that have hot-selling products.
+   * When a tab is active it narrows results to that category.
+   */
   showTabs?: boolean;
 }
 
 export function ProductSection({
   title,
-  categoryId,
+  categoryId: categoryIdProp,
+  categorySlug,
   isBestseller,
   isFeatured,
   isHotSelling,
@@ -29,21 +38,46 @@ export function ProductSection({
   viewAllLink = '/shop',
   showTabs = false,
 }: ProductSectionProps) {
-  const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(categoryId);
+  // resolvedCategoryId — starts from prop, may be overridden when slug is resolved
+  const [resolvedCategoryId, setResolvedCategoryId] = useState<string | undefined>(categoryIdProp);
 
-  // Build base "hot selling" condition — used for both products query AND tab categories
-  const hotSellingFilter = isHotSelling || isBestseller;
+  // activeCategoryId — controlled by tab clicks (only meaningful when showTabs=true)
+  const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(categoryIdProp);
 
-  // Fetch categories that have at least one hot-selling product (for smart tabs)
+  const hotFlag = isHotSelling || isBestseller;
+
+  // ── 1. Resolve categorySlug → id ──────────────────────────────────────────
+  useEffect(() => {
+    if (!categorySlug) return;
+    supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.id) {
+          setResolvedCategoryId(data.id);
+          setActiveCategoryId(data.id);
+        }
+      });
+  }, [categorySlug]);
+
+  // ── 2. Fetch tabs (only when showTabs=true) ───────────────────────────────
+  //    When hotFlag is true → only show categories that have hot-selling products
+  //    When hotFlag is false → show all categories (up to 6)
   const { data: tabCategories } = useQuery({
-    queryKey: ['categories-with-hot', hotSellingFilter],
+    queryKey: ['section-tabs', hotFlag, resolvedCategoryId],
+    enabled: showTabs,
     queryFn: async () => {
-      if (!hotSellingFilter) {
-        // Return all categories (limited) for non-hot sections
-        const { data } = await supabase.from('categories').select('*').limit(6);
+      if (!hotFlag) {
+        const { data } = await supabase
+          .from('categories')
+          .select('id, name, slug')
+          .limit(6);
         return data || [];
       }
-      // Only show categories that actually have hot selling products
+
+      // Only tabs whose category has at least one hot-selling product
       const { data: hotProducts } = await supabase
         .from('products')
         .select('category_id, category:categories(id, name, slug)')
@@ -51,9 +85,8 @@ export function ProductSection({
         .eq('is_bestseller', true)
         .not('category_id', 'is', null);
 
-      if (!hotProducts || hotProducts.length === 0) return [];
+      if (!hotProducts?.length) return [];
 
-      // Deduplicate by category id
       const seen = new Set<string>();
       const uniqueCats: { id: string; name: string; slug: string }[] = [];
       for (const p of hotProducts) {
@@ -65,12 +98,19 @@ export function ProductSection({
       }
       return uniqueCats;
     },
-    enabled: showTabs,
   });
 
-  // Fetch products
+  // ── 3. Fetch products ─────────────────────────────────────────────────────
   const { data: products, isLoading } = useQuery({
-    queryKey: ['section-products', title, activeCategoryId, isBestseller, isFeatured, isHotSelling],
+    queryKey: [
+      'section-products',
+      title,
+      activeCategoryId,
+      resolvedCategoryId,
+      isBestseller,
+      isFeatured,
+      isHotSelling,
+    ],
     queryFn: async () => {
       let query = supabase
         .from('products')
@@ -84,15 +124,14 @@ export function ProductSection({
         `)
         .eq('is_active', true);
 
-      if (activeCategoryId) {
-        query = query.eq('category_id', activeCategoryId);
-      }
-      if (isHotSelling || isBestseller) {
-        query = query.eq('is_bestseller', true);
-      }
-      if (isFeatured) {
-        query = query.eq('is_featured', true);
-      }
+      // Category filter:
+      //  - if showTabs → use activeCategoryId (tab selection)
+      //  - if no showTabs but slug/id was provided → use resolvedCategoryId
+      const catFilter = showTabs ? activeCategoryId : (activeCategoryId ?? resolvedCategoryId);
+      if (catFilter) query = query.eq('category_id', catFilter);
+
+      if (hotFlag) query = query.eq('is_bestseller', true);
+      if (isFeatured) query = query.eq('is_featured', true);
 
       const { data, error } = await query
         .limit(limit)
@@ -104,23 +143,34 @@ export function ProductSection({
       }
       return data || [];
     },
+    // Wait until slug is resolved before firing
+    enabled: !categorySlug || !!resolvedCategoryId,
   });
+
+  // ── 4. View All link — scoped to category when relevant ──────────────────
+  const effectiveViewAll =
+    viewAllLink !== '/shop'
+      ? viewAllLink
+      : categorySlug
+      ? `/shop?category=${categorySlug}`
+      : '/shop';
 
   return (
     <section className="py-12 border-b border-gray-50 last:border-0">
       <div className="container mx-auto px-4">
+
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
           <Link
-            href={viewAllLink}
+            href={effectiveViewAll}
             className="flex items-center text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors"
           >
             View All <ChevronRight className="w-4 h-4 ml-1" />
           </Link>
         </div>
 
-        {/* Category Tabs (smart — only shown when showTabs=true and categories exist) */}
+        {/* Category Tabs */}
         {showTabs && tabCategories && tabCategories.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-8">
             <button
@@ -149,7 +199,7 @@ export function ProductSection({
           </div>
         )}
 
-        {/* Content */}
+        {/* Product Grid */}
         {isLoading ? (
           <ProductGridSkeleton count={4} />
         ) : products && products.length > 0 ? (

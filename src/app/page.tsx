@@ -52,9 +52,26 @@ export default function HomePage() {
           ) : (
             <>
               {/* Fallback/Default sections if no DB configuration exists yet */}
-              <ProductSection title="Hot Selling Products" isHotSelling={true} showTabs={true} />
-              <ProductSection title="Hot Selling Pre-Workouts" isBestseller={true} />
-              <ProductSection title="Gaining-Zone" />
+              {/* "All" hot selling with category tabs */}
+              <ProductSection
+                title="Hot Selling Products"
+                isHotSelling={true}
+                showTabs={true}
+                viewAllLink="/shop"
+              />
+              {/* Pre-Workout hot selling only */}
+              <ProductSection
+                title="Hot Selling Pre-Workouts"
+                categorySlug="pre-workout"
+                isHotSelling={true}
+                viewAllLink="/shop?category=pre-workout"
+              />
+              {/* Gainer products */}
+              <ProductSection
+                title="Gaining-Zone"
+                categorySlug="gainer"
+                viewAllLink="/shop?category=gainer"
+              />
             </>
           )}
         </div>

@@ -10,7 +10,7 @@ const categories = [
     },
     {
         name: "Weight Gainer",
-        image: "/assets/categories/Mass_Weight_Gain_300x.avif",
+        image: "/assets/categories/mass_gainer_logo.webp",
         href: "/shop?category=gainer",
         bgColor: "bg-gray-100"
     },
@@ -34,13 +34,13 @@ const categories = [
     },
     {
         name: "Wellness",
-        image: "/assets/categories/wellness_300x.avif",
+        image: "/assets/categories/wellness_logo.webp",
         href: "/shop?category=wellness",
         bgColor: "bg-gray-100"
     },
     {
         name: "Workout Essentials",
-        image: "/assets/categories/Workout_Essentials_300x.avif",
+        image: "/assets/categories/essentials_logo.webp",
         href: "/shop?category=others",
         bgColor: "bg-gray-100"
     }

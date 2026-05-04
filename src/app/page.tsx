@@ -52,7 +52,7 @@ export default function HomePage() {
           ) : (
             <>
               {/* Fallback/Default sections if no DB configuration exists yet */}
-              <ProductSection title="Hot Selling Products" showTabs={true} />
+              <ProductSection title="Hot Selling Products" isHotSelling={true} showTabs={true} />
               <ProductSection title="Hot Selling Pre-Workouts" isBestseller={true} />
               <ProductSection title="Gaining-Zone" />
             </>

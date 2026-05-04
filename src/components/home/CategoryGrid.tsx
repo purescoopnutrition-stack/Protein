@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 const proteinImg = "/assets/protein_tub_gold_1768913186005.png";
 const vitaminImg = "/assets/vitamin_wellness_bottles_1768913214027.png";
 const gainerImg = "/assets/mass_gainer_bag_1768913244480.png";
@@ -13,7 +13,8 @@ export function CategoryGrid() {
             image: proteinImg,
             desc: "Premium Wheys & Isolates",
             colSpan: "col-span-1 md:col-span-2 row-span-2",
-            theme: "dark"
+            theme: "dark",
+            href: "/shop?category=whey-protein"
         },
         {
             id: "vitamins",
@@ -21,7 +22,8 @@ export function CategoryGrid() {
             image: vitaminImg,
             desc: "Daily Wellness Essentials",
             colSpan: "col-span-1",
-            theme: "light"
+            theme: "light",
+            href: "/shop?category=multivitamin"
         },
         {
             id: "gainer",
@@ -29,7 +31,8 @@ export function CategoryGrid() {
             image: gainerImg,
             desc: "High Calorie Formulas",
             colSpan: "col-span-1",
-            theme: "dark"
+            theme: "dark",
+            href: "/shop?category=gainer"
         },
         {
             id: "accessories",
@@ -37,7 +40,8 @@ export function CategoryGrid() {
             image: accessoriesImg,
             desc: "Gear Up for Success",
             colSpan: "col-span-1 md:col-span-2",
-            theme: "light"
+            theme: "light",
+            href: "/shop?category=others"
         }
     ];
 
@@ -48,7 +52,8 @@ export function CategoryGrid() {
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[300px]">
                     {categories.map((cat) => (
-                        <div
+                        <Link
+                            href={cat.href}
                             key={cat.id}
                             className={`group relative rounded-3xl overflow-hidden cursor-pointer ${cat.colSpan}`}
                         >
@@ -73,7 +78,7 @@ export function CategoryGrid() {
                                     Shop Now <ArrowRight className="w-4 h-4" />
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             </div>

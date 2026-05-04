@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Image as ImageIcon, Loader2, Upload, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Image as ImageIcon, Loader2, Upload, X, Flame } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -72,6 +72,7 @@ function ProductsContent() {
   const [existingImages, setExistingImages] = useState<{ id: string; url: string; position: number }[]>([]);
   const [flavours, setFlavours] = useState<string>('');
   const [sizes, setSizes] = useState<string>('');
+  const [togglingHot, setTogglingHot] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function loadProducts() {
@@ -89,6 +90,45 @@ function ProductsContent() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  async function toggleHotSelling(prod: any) {
+    setTogglingHot(prod.id);
+    try {
+      const newVal = !prod.is_bestseller;
+      // Use the existing adminSaveProduct endpoint to update just the bestseller flag
+      await adminSaveProduct({
+        editId: prod.id,
+        name: prod.name,
+        slug: prod.slug,
+        description: prod.description,
+        price: Number(prod.price),
+        compare_price: prod.compare_price ? Number(prod.compare_price) : undefined,
+        stock: prod.stock,
+        is_featured: prod.is_featured,
+        is_bestseller: newVal,
+        is_active: prod.is_active,
+        weight: prod.weight,
+        servings: prod.servings,
+        protein_per_serving: prod.protein_per_serving,
+        carbs_per_serving: prod.carbs_per_serving,
+        fat_per_serving: prod.fat_per_serving,
+        energy_per_serving: prod.energy_per_serving,
+        ingredients: prod.ingredients,
+        usage_instructions: prod.usage_instructions,
+        category_name: prod.category?.name,
+        brand_name: prod.brand?.name,
+        flavourList: (prod.flavours as { name: string }[])?.map((f) => f.name) || [],
+        sizeList: (prod.sizes as { name: string }[])?.map((s) => s.name) || [],
+      });
+      toast.success(newVal ? '🔥 Marked as Hot Selling!' : 'Removed from Hot Selling');
+      qc.invalidateQueries({ queryKey: ['products'] });
+      await loadProducts();
+    } catch {
+      toast.error('Failed to update product');
+    } finally {
+      setTogglingHot(null);
+    }
+  }
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
@@ -231,6 +271,7 @@ function ProductsContent() {
               <TableHead className="text-white/50">Name</TableHead>
               <TableHead className="text-white/50">Price</TableHead>
               <TableHead className="text-white/50">Stock</TableHead>
+              <TableHead className="text-white/50">🔥 Hot</TableHead>
               <TableHead className="text-white/50">Status</TableHead>
               <TableHead className="text-white/50 text-right">Actions</TableHead>
             </TableRow>
@@ -253,6 +294,23 @@ function ProductsContent() {
                     <TableCell><span className="font-medium text-white">{prod.name}</span></TableCell>
                     <TableCell>₹{Number(prod.price).toLocaleString('en-IN')}</TableCell>
                     <TableCell>{prod.stock}</TableCell>
+                    <TableCell>
+                      <button
+                        title={prod.is_bestseller ? 'Remove from Hot Selling' : 'Mark as Hot Selling'}
+                        onClick={() => toggleHotSelling(prod)}
+                        disabled={togglingHot === prod.id}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                          prod.is_bestseller
+                            ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border border-orange-500/30'
+                            : 'bg-white/5 text-white/30 hover:bg-orange-500/10 hover:text-orange-400 border border-white/10'
+                        }`}
+                      >
+                        {togglingHot === prod.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Flame className={`w-3 h-3 ${prod.is_bestseller ? 'fill-orange-400' : ''}`} />}
+                        {prod.is_bestseller ? 'Hot' : 'Set Hot'}
+                      </button>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={prod.is_active ? 'default' : 'secondary'} className="text-xs">
                         {prod.is_active ? 'Active' : 'Inactive'}
@@ -383,10 +441,25 @@ function ProductsContent() {
             </div>
 
             {/* Toggles */}
-            <div className="flex flex-wrap gap-6">
-              <label className="flex items-center gap-2 text-sm"><Switch checked={watch('is_featured')} onCheckedChange={(v) => setValue('is_featured', v)} /> Featured</label>
-              <label className="flex items-center gap-2 text-sm"><Switch checked={watch('is_bestseller')} onCheckedChange={(v) => setValue('is_bestseller', v)} /> Bestseller</label>
-              <label className="flex items-center gap-2 text-sm"><Switch checked={watch('is_active')} onCheckedChange={(v) => setValue('is_active', v)} /> Active</label>
+            <div className="pt-4 border-t border-white/5">
+              <h4 className="text-sm font-bold text-white/70 mb-4 uppercase tracking-wider">Product Flags</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <label className="flex flex-col items-center gap-2 p-4 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors text-center">
+                  <Switch checked={watch('is_featured')} onCheckedChange={(v) => setValue('is_featured', v)} />
+                  <span className="text-xs font-bold text-white/70">⭐ Featured</span>
+                  <span className="text-[10px] text-white/30">Show in featured sections</span>
+                </label>
+                <label className="flex flex-col items-center gap-2 p-4 rounded-xl border border-orange-500/30 bg-orange-500/10 cursor-pointer hover:bg-orange-500/20 transition-colors text-center">
+                  <Switch checked={watch('is_bestseller')} onCheckedChange={(v) => setValue('is_bestseller', v)} />
+                  <span className="text-xs font-bold text-orange-400">🔥 Hot Selling</span>
+                  <span className="text-[10px] text-white/30">Show in landing page</span>
+                </label>
+                <label className="flex flex-col items-center gap-2 p-4 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors text-center">
+                  <Switch checked={watch('is_active')} onCheckedChange={(v) => setValue('is_active', v)} />
+                  <span className="text-xs font-bold text-white/70">✅ Active</span>
+                  <span className="text-[10px] text-white/30">Visible in store</span>
+                </label>
+              </div>
             </div>
 
             {/* Images */}

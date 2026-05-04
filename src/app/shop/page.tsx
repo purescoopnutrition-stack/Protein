@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Star, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Star, SlidersHorizontal, X, Clock, Rocket } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useProducts } from '@/hooks/use-products';
 import { useCategories } from '@/hooks/use-categories';
@@ -28,6 +28,7 @@ function ShopContent() {
   const initialCategorySlug = searchParams.get('category');
   
   const [categoryId, setCategoryId] = useState<string | undefined>();
+  const [categoryNotFound, setCategoryNotFound] = useState(false);
   const [brandId, setBrandId] = useState<string | undefined>();
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [inStock, setInStock] = useState(false);
@@ -50,7 +51,14 @@ function ShopContent() {
       const cat = categories.find(c => c.slug === initialCategorySlug);
       if (cat) {
         setCategoryId(cat.id);
+        setCategoryNotFound(false);
+      } else {
+        // Category slug in URL not found in DB → treat as Coming Soon
+        setCategoryId(undefined);
+        setCategoryNotFound(true);
       }
+    } else if (!initialCategorySlug) {
+      setCategoryNotFound(false);
     }
   }, [initialCategorySlug, categories]);
 
@@ -273,6 +281,32 @@ function ShopContent() {
                     </motion.div>
                   );
                 })}
+              </div>
+            ) : (initialCategorySlug && categoryId) || (initialCategorySlug && categoryNotFound) ? (
+              // Specific category selected but no products → Coming Soon
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="relative mb-8">
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-amber-400/20 flex items-center justify-center animate-pulse">
+                    <Rocket className="w-14 h-14 text-primary" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center shadow-lg">
+                    <Clock className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+                <h3 className="text-3xl font-heading font-black mb-3 text-gray-900">
+                  Coming <span className="text-primary italic">Soon!</span>
+                </h3>
+                <p className="text-muted-foreground max-w-sm mb-6 text-base">
+                  We&apos;re working hard to bring you amazing products in this category. Stay tuned!
+                </p>
+                <div className="flex items-center gap-3">
+                  <Button onClick={clearFilters} className="rounded-full bg-primary text-white px-6">
+                    Browse All Products
+                  </Button>
+                  <Button variant="outline" onClick={() => window.history.back()} className="rounded-full px-6">
+                    Go Back
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
